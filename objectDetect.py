@@ -3,6 +3,9 @@ import numpy as np
 
 cap = cv2.VideoCapture(0)
 
+thres = 0.5
+nms_thres = 0.2
+
 classNames = ['pessoa', 'bicicleta', 'carro', 'motocicleta', 'avião',
                'ônibus', 'trem', 'caminhão', 'barco', 'semáforo', 'hidrante',
                  'placa de rua', 'placa de pare', 'parquímetro', 'banco', 'pássaro',
@@ -26,8 +29,33 @@ weightsPath = 'frozen_inference_graph.pb'
 
 net = cv2.dnn_DetectionModel(weightsPath, configPath)
 net.setInputSize(320,320)
-net.setInputscale(1.0/127.5)
-net.setImput
+net.setInputScale(1.0/127.5)
+net.setInputMean((127.5, 127.5, 127,5))
+net.setInputSwapRB(True)
 
-#https://www.youtube.com/watch?v=Yw4IrVeylvY&list=PL_36D3ID4tO-xgGzgfFwMvPqyt0U83hO8&index=8
-#continuar min 8:44
+while True:
+  ret, video = cap.read()
+
+  classIds, confis,bbox = net.detect(video, confThreshold = thres)
+  
+  bbox = list(bbox)
+  confis = list(np.array(confis).reshape(1,-1)[0])
+  confis = list(map(float, confis))
+
+  #print(confis)
+
+  indices = cv2.dnn.NMSBoxes(bbox, confis, thres, nms_thres)
+  print(indices)
+
+  for i in indices:
+      #i = i[0]
+      
+      box =bbox[i]
+
+      x,y,w,h = box[0],box[1],box[2],box[3]
+      cv2.rectangle(video, (x,y), (x+w, y+h), (0, 255, 0),2)
+      cv2.putText(video, classNames[classIds[i]-1].upper(),(box[0], box[1]-5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+  cv2.imshow("ObjectDetect", video)
+  cv2.waitKey(1)
+
